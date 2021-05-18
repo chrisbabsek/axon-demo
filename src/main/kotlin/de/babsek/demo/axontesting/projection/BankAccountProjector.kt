@@ -15,37 +15,6 @@ class BankAccountProjector(
     private val repository: BankAccountProjectionRepository
 ) {
 
-    @EventHandler
-    fun on(event: BankAccountOpenedEvent) {
-        repository.saveAndFlush(
-            BankAccountProjectionEntity(
-                bankAccountId = event.bankAccountId,
-                balance = 0.0
-            )
-        )
-    }
-
-    @EventHandler
-    fun on(event: MoneyTransferRequestedEvent) {
-        updateBalance(event.originBankAccountId) {
-            it - event.amount
-        }
-    }
-
-    @EventHandler
-    fun on(event: MoneyTransferArrivedEvent) {
-        updateBalance(event.bankAccountId) {
-            it + event.amount
-        }
-    }
-
-    @EventHandler
-    fun on(event: MoneyTransferFailedEvent) {
-        updateBalance(event.bankAccountId) {
-            it + event.amount
-        }
-    }
-
     private fun updateBalance(bankAccountId: String, balanceChanger: (Double) -> Double) {
         repository
             .findByBankAccountId(bankAccountId)
