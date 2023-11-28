@@ -46,9 +46,12 @@ CREATE TABLE IF NOT EXISTS SagaEntry (
     PRIMARY KEY (sagaId)
     );
 
-CREATE TABLE IF NOT EXISTS BankAccountProjection (
+CREATE TABLE IF NOT EXISTS bank_account_projection
+(
     id BIGSERIAL NOT NULL,
-    bankaccountid VARCHAR(255) NOT NULL,
+    bank_account_id VARCHAR(255) NOT NULL,
+    owner_name      TEXT         NOT NULL,
     balance FLOAT NOT NULL,
+    transactions    JSONB        NOT NULL,
     PRIMARY KEY (id)
 );

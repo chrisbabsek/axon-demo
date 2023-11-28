@@ -1,0 +1,7 @@
+POST http://localhost:8080/bankaccounts
+Content-Type: application/json
+
+{
+  "bankAccountId": "001",
+  "ownerName": "Ted Tester"
+}

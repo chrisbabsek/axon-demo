@@ -8,6 +8,7 @@ import de.babsek.demo.axontesting.domain.events.BankAccountOpenedEvent
 import de.babsek.demo.axontesting.domain.events.MoneyTransferArrivedEvent
 import de.babsek.demo.axontesting.domain.events.MoneyTransferFailedEvent
 import de.babsek.demo.axontesting.domain.events.MoneyTransferRequestedEvent
+import de.babsek.demo.axontesting.domain.exceptions.BankAccountAlreadyExistingException
 import de.babsek.demo.axontesting.domain.exceptions.NotEnoughMoneyException
 import org.axonframework.commandhandling.CommandHandler
 import org.axonframework.eventsourcing.EventSourcingHandler
@@ -28,6 +29,10 @@ class BankAccountAggregate {
     @CreationPolicy(AggregateCreationPolicy.CREATE_IF_MISSING)
     @CommandHandler
     fun openBankAccount(command: OpenBankAccountCommand): String {
+        if (this::bankAccountId.isInitialized) {
+            throw BankAccountAlreadyExistingException(bankAccountId = command.bankAccountId)
+        }
+
         AggregateLifecycle.apply(
             BankAccountOpenedEvent(
                 bankAccountId = command.bankAccountId,

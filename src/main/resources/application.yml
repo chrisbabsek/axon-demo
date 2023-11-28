@@ -11,4 +11,6 @@ spring:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
     password: secret
-    initialization-mode: always
+  sql:
+    init:
+      mode: always

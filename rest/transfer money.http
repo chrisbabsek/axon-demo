@@ -1,0 +1,9 @@
+POST http://localhost:8080/transfers
+Content-Type: application/json
+
+{
+  "originBankAccountId": "001",
+  "destinationBankAccountId": "002",
+  "amount": 100.0,
+  "reason": "some reason"
+}
