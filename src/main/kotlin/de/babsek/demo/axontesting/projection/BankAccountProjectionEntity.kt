@@ -1,6 +1,7 @@
 package de.babsek.demo.axontesting.projection
 
-import javax.persistence.*
+import jakarta.persistence.*
+
 
 @Table(name = "bankaccountprojection")
 @Entity

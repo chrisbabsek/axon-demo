@@ -1,12 +1,12 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "2.4.5"
-    id("io.spring.dependency-management") version "1.0.11.RELEASE"
-    id("com.github.ben-manes.versions") version "0.38.0"
-    kotlin("jvm") version "1.5.0"
-    kotlin("plugin.spring") version "1.5.0"
-    kotlin("plugin.jpa") version "1.5.0"
+    id("org.springframework.boot") version "3.2.0"
+    id("io.spring.dependency-management") version "1.1.4"
+    id("com.github.ben-manes.versions") version "0.50.0"
+    kotlin("jvm") version "1.9.20"
+    kotlin("plugin.spring") version "1.9.20"
+    kotlin("plugin.jpa") version "1.9.20"
 }
 
 repositories {
@@ -14,6 +14,14 @@ repositories {
 }
 
 group = "de.babsek.demo.axontesting"
+
+extra["axonVersion"] = "4.9.1"
+
+dependencyManagement {
+    imports {
+        mavenBom("org.axonframework:axon-bom:${property("axonVersion")}")
+    }
+}
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -25,22 +33,21 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.github.microutils:kotlin-logging:2.0.6")
 
-    implementation("org.axonframework:axon-spring-boot-starter:4.5")
-    implementation("org.axonframework.extensions.kotlin:axon-kotlin:0.1.0")
+    implementation("org.axonframework:axon-spring-boot-starter")
+    implementation("org.axonframework.extensions.kotlin:axon-kotlin:4.9.0")
 
-    runtimeOnly("org.postgresql:postgresql:42.2.20")
+    runtimeOnly("org.postgresql:postgresql:42.7.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("com.ninja-squad:springmockk:3.0.1")
-    testImplementation("org.testcontainers:junit-jupiter:1.15.3")
-    testImplementation("org.axonframework:axon-test:4.5")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation("org.axonframework:axon-test")
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "11"
-        languageVersion = "1.5"
+        jvmTarget = "17"
     }
 }
 
