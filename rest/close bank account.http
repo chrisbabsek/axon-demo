@@ -1,0 +1,4 @@
+< {%
+    request.variables.set("bankAccountId", "001")
+%}
+DELETE http://localhost:8080/bankaccounts/{{bankAccountId}}

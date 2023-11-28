@@ -1,9 +1,6 @@
 package de.babsek.demo.axontesting.projection
 
-import de.babsek.demo.axontesting.domain.events.BankAccountOpenedEvent
-import de.babsek.demo.axontesting.domain.events.MoneyTransferArrivedEvent
-import de.babsek.demo.axontesting.domain.events.MoneyTransferFailedEvent
-import de.babsek.demo.axontesting.domain.events.MoneyTransferRequestedEvent
+import de.babsek.demo.axontesting.domain.events.*
 import de.babsek.demo.axontesting.domain.value.TransactionDetails
 import org.axonframework.config.ProcessingGroup
 import org.axonframework.eventhandling.EventHandler
@@ -71,6 +68,18 @@ class BankAccountProjector(
                 date = now,
                 valuta = event.amount,
                 details = "transfer to ${event.targetBankAccountId} failed: ${event.errorMessage}"
+            )
+        )
+    }
+
+    @EventHandler
+    fun on(event: BankAccountClosedEvent, @Timestamp now: Instant) = updateProjection(event.bankAccountId) {
+        copy(
+            transactions = transactions + TransactionDetails(
+                type = "closed",
+                date = now,
+                valuta = 0.0,
+                details = "bank account closed"
             )
         )
     }

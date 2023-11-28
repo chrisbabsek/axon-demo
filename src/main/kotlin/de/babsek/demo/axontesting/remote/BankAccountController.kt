@@ -1,6 +1,7 @@
 package de.babsek.demo.axontesting.remote
 
 import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
+import de.babsek.demo.axontesting.domain.commands.CloseBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.OpenBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.TransferMoneyCommand
 import de.babsek.demo.axontesting.projection.BankAccountProjectionEntity
@@ -23,16 +24,9 @@ class BankAccountController(
             .map { it.toDto() }
     }
 
-    @GetMapping("bankaccounts/{bankAccountId}")
-    fun findById(@PathVariable bankAccountId: String): BankAccountDto? {
-        return bankAccountProjectionRepository
-            .findByBankAccountId(bankAccountId)
-            ?.toDto()
-    }
-
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("bankaccounts")
-    fun createBankAccount(@RequestBody request: CreateBankAccountDto): String {
+    fun openBankAccount(@RequestBody request: CreateBankAccountDto): String {
         return commandGateway.sendAndWait(
             OpenBankAccountCommand(
                 bankAccountId = request.bankAccountId,
@@ -45,6 +39,23 @@ class BankAccountController(
         val bankAccountId: String,
         val ownerName: String,
     )
+
+    @GetMapping("bankaccounts/{bankAccountId}")
+    fun findById(@PathVariable bankAccountId: String): BankAccountDto? {
+        return bankAccountProjectionRepository
+            .findByBankAccountId(bankAccountId)
+            ?.toDto()
+    }
+
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @DeleteMapping("bankaccounts/{bankAccountId}")
+    fun closeBankAccount(@PathVariable bankAccountId: String) {
+        commandGateway.sendAndWait<Unit>(
+            CloseBankAccountCommand(
+                bankAccountId = bankAccountId,
+            )
+        )
+    }
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("bankaccounts/{bankAccountId}/payments")

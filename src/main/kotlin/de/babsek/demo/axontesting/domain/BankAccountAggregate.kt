@@ -1,14 +1,9 @@
 package de.babsek.demo.axontesting.domain
 
-import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
-import de.babsek.demo.axontesting.domain.commands.InformFailedMoneyTransferCommand
-import de.babsek.demo.axontesting.domain.commands.OpenBankAccountCommand
-import de.babsek.demo.axontesting.domain.commands.TransferMoneyCommand
-import de.babsek.demo.axontesting.domain.events.BankAccountOpenedEvent
-import de.babsek.demo.axontesting.domain.events.MoneyTransferArrivedEvent
-import de.babsek.demo.axontesting.domain.events.MoneyTransferFailedEvent
-import de.babsek.demo.axontesting.domain.events.MoneyTransferRequestedEvent
+import de.babsek.demo.axontesting.domain.commands.*
+import de.babsek.demo.axontesting.domain.events.*
 import de.babsek.demo.axontesting.domain.exceptions.BankAccountAlreadyExistingException
+import de.babsek.demo.axontesting.domain.exceptions.BankAccountMustBeBalancedForCloseException
 import de.babsek.demo.axontesting.domain.exceptions.NotEnoughMoneyException
 import org.axonframework.commandhandling.CommandHandler
 import org.axonframework.eventsourcing.EventSourcingHandler
@@ -106,5 +101,25 @@ class BankAccountAggregate {
     @EventSourcingHandler
     fun on(event: MoneyTransferFailedEvent) {
         balance += event.amount
+    }
+
+    @CommandHandler
+    fun handleCloseBankAccount(command: CloseBankAccountCommand) {
+        if (balance != 0.0) {
+            throw BankAccountMustBeBalancedForCloseException(
+                bankAccountId = command.bankAccountId,
+                remainingBalance = balance,
+            )
+        }
+        AggregateLifecycle.apply(
+            BankAccountClosedEvent(
+                bankAccountId = command.bankAccountId,
+            )
+        )
+    }
+
+    @EventSourcingHandler
+    fun on(event: BankAccountClosedEvent) {
+        AggregateLifecycle.markDeleted()
     }
 }
