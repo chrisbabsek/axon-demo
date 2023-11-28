@@ -12,13 +12,15 @@ import de.babsek.demo.axontesting.domain.exceptions.BankAccountAlreadyExistingEx
 import de.babsek.demo.axontesting.domain.exceptions.BankAccountMustBeBalancedForCloseException
 import de.babsek.demo.axontesting.domain.exceptions.NotEnoughMoneyException
 import org.axonframework.eventsourcing.AggregateDeletedException
-import org.axonframework.test.aggregate.AggregateTestFixture
+import org.axonframework.extension.kotlin.test.aggregateTestFixture
+import org.axonframework.extension.kotlin.test.expectException
+import org.axonframework.extension.kotlin.test.whenever
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 
 class BankAccountAggregateTest {
-    val fixture by lazy { AggregateTestFixture(BankAccountAggregate::class.java) }
+    val fixture = aggregateTestFixture<BankAccountAggregate>()
 
     @Nested
     inner class OpenBankAccount {
@@ -26,7 +28,7 @@ class BankAccountAggregateTest {
         fun `can open new bank account`() {
             fixture
                 .givenNoPriorActivity()
-                .`when`(
+                .whenever(
                     OpenBankAccountCommand(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
@@ -52,13 +54,13 @@ class BankAccountAggregateTest {
                         initialBalance = 0.0,
                     )
                 )
-                .`when`(
+                .whenever(
                     OpenBankAccountCommand(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
                     )
                 )
-                .expectException(BankAccountAlreadyExistingException::class.java)
+                .expectException(BankAccountAlreadyExistingException::class)
         }
     }
 
@@ -74,7 +76,7 @@ class BankAccountAggregateTest {
                         initialBalance = 0.0,
                     )
                 )
-                .`when`(
+                .whenever(
                     AcceptMoneyTransferCommand(
                         bankAccountId = "001",
                         amount = 2500.0,
@@ -104,7 +106,7 @@ class BankAccountAggregateTest {
                         initialBalance = 1000.0,
                     )
                 )
-                .`when`(
+                .whenever(
                     TransferMoneyCommand(
                         bankAccountId = "001",
                         destinationBankAccount = "002",
@@ -112,7 +114,7 @@ class BankAccountAggregateTest {
                         reason = "rent payment 11/23"
                     )
                 )
-                .expectException(NotEnoughMoneyException::class.java)
+                .expectException(NotEnoughMoneyException::class)
         }
 
         @Test
@@ -125,7 +127,7 @@ class BankAccountAggregateTest {
                         initialBalance = 1000.0,
                     )
                 )
-                .`when`(
+                .whenever(
                     TransferMoneyCommand(
                         bankAccountId = "001",
                         destinationBankAccount = "002",
@@ -157,7 +159,7 @@ class BankAccountAggregateTest {
                         initialBalance = 0.0,
                     )
                 )
-                .`when`(
+                .whenever(
                     CloseBankAccountCommand(
                         bankAccountId = "001",
                     )
@@ -181,12 +183,12 @@ class BankAccountAggregateTest {
                         initialBalance = 100.0,
                     )
                 )
-                .`when`(
+                .whenever(
                     CloseBankAccountCommand(
                         bankAccountId = "001",
                     )
                 )
-                .expectException(BankAccountMustBeBalancedForCloseException::class.java)
+                .expectException(BankAccountMustBeBalancedForCloseException::class)
         }
 
         @Test
@@ -204,12 +206,12 @@ class BankAccountAggregateTest {
                         bankAccountId = "001",
                     )
                 )
-                .`when`(
+                .whenever(
                     CloseBankAccountCommand(
                         bankAccountId = "001",
                     )
                 )
-                .expectException(AggregateDeletedException::class.java)
+                .expectException(AggregateDeletedException::class)
         }
     }
 
