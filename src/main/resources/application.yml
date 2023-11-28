@@ -1,6 +1,18 @@
 axon:
   axonserver:
     enabled: false
+  eventhandling:
+    processors:
+      subscribing:
+        mode: subscribing
+      internalMoneyTransfer:
+        mode: tracking
+        thread-count: 1
+        initial-segment-count: 1
+      readModelProjection:
+        mode: tracking
+        thread-count: 1
+        initial-segment-count: 1
   serializer:
     general: jackson
     events: jackson

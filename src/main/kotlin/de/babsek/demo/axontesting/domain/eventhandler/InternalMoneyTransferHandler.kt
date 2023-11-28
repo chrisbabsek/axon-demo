@@ -1,5 +1,6 @@
 package de.babsek.demo.axontesting.domain.eventhandler
 
+import de.babsek.demo.axontesting.configuration.ProcessingGroups
 import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.commands.InformFailedMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.events.MoneyTransferRequestedEvent
@@ -8,7 +9,7 @@ import org.axonframework.config.ProcessingGroup
 import org.axonframework.eventhandling.EventHandler
 import org.springframework.stereotype.Component
 
-@ProcessingGroup("internalMoneyTransfer")
+@ProcessingGroup(ProcessingGroups.INTERNAL_MONEY_TRANSFER)
 @Component
 class InternalMoneyTransferHandler(
     private val commandGateway: CommandGateway,

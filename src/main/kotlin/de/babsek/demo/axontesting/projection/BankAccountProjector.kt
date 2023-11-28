@@ -1,5 +1,6 @@
 package de.babsek.demo.axontesting.projection
 
+import de.babsek.demo.axontesting.configuration.ProcessingGroups
 import de.babsek.demo.axontesting.domain.events.*
 import de.babsek.demo.axontesting.domain.value.TransactionDetails
 import org.axonframework.config.ProcessingGroup
@@ -8,7 +9,7 @@ import org.axonframework.eventhandling.Timestamp
 import org.springframework.stereotype.Component
 import java.time.Instant
 
-@ProcessingGroup("bankAccountProjection")
+@ProcessingGroup(ProcessingGroups.READ_MODEL_PROJECTION)
 @Component
 class BankAccountProjector(
     private val repository: BankAccountProjectionRepository,

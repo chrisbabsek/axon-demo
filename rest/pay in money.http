@@ -1,6 +1,9 @@
+< {%
+    request.variables.set("amount", 100)
+%}
 POST http://localhost:8080/bankaccounts/001/payments
 Content-Type: application/json
 
 {
-  "amount": 100.0
+  "amount": {{amount}}
 }
