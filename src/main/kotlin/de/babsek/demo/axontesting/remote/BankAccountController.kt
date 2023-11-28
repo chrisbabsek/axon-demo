@@ -9,35 +9,37 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping
 class BankAccountController(
-    private val commandGateway: CommandGateway
+    private val commandGateway: CommandGateway,
 ) {
 
     @PostMapping("bankaccounts")
     fun createBankAccount(@RequestBody request: BankAccountDto): String {
-        val command = OpenBankAccountCommand(
-            bankAccountId = request.bankAccountId,
-            ownerName = request.ownerName
+        return commandGateway.sendAndWait(
+            OpenBankAccountCommand(
+                bankAccountId = request.bankAccountId,
+                ownerName = request.ownerName,
+            ),
         )
-        return commandGateway.sendAndWait(command)
     }
 
     data class BankAccountDto(
         val bankAccountId: String,
-        val ownerName: String
+        val ownerName: String,
     )
 
     @PostMapping("bankaccounts/{bankAccountId}/payings")
     fun payInMoney(@PathVariable bankAccountId: String, @RequestBody request: PayInMoneyDto) {
-        val command = AcceptMoneyTransferCommand(
-            bankAccountId = bankAccountId,
-            amount = request.amount,
-            reason = "pay in"
+        commandGateway.sendAndWait<Unit>(
+            AcceptMoneyTransferCommand(
+                bankAccountId = bankAccountId,
+                amount = request.amount,
+                reason = "pay in",
+            ),
         )
-        commandGateway.sendAndWait<Unit>(command)
     }
 
     data class PayInMoneyDto(
-        val amount: Double
+        val amount: Double,
     )
 
     @PostMapping("transfers")
@@ -47,8 +49,8 @@ class BankAccountController(
                 bankAccountId = request.originBankAccountId,
                 destinationBankAccount = request.destinationBankAccountId,
                 amount = request.amount,
-                reason = request.reason
-            )
+                reason = request.reason,
+            ),
         )
     }
 
@@ -56,7 +58,6 @@ class BankAccountController(
         val originBankAccountId: String,
         val destinationBankAccountId: String,
         val amount: Double,
-        val reason: String
+        val reason: String,
     )
-
 }
