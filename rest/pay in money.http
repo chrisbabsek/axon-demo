@@ -1,5 +1,5 @@
 < {%
-    request.variables.set("amount", 100)
+    request.variables.set("amount", 15000)
 %}
 POST http://localhost:8080/bankaccounts/001/payments
 Content-Type: application/json

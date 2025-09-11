@@ -36,6 +36,7 @@ dependencies {
     implementation("org.axonframework:axon-spring-boot-starter")
     implementation("org.axonframework.extensions.kotlin:axon-kotlin:4.9.0")
     implementation("org.axonframework.extensions.kotlin:axon-kotlin-test:4.9.0")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     runtimeOnly("org.postgresql:postgresql:42.7.0")
     implementation("com.vladmihalcea:hibernate-types-60:2.21.1")

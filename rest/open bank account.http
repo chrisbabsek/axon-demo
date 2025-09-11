@@ -1,5 +1,5 @@
 < {%
-    request.variables.set("bankAccountId", "002")
+    request.variables.set("bankAccountId", "001")
 %}
 POST http://localhost:8080/bankaccounts
 Content-Type: application/json
