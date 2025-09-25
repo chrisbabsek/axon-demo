@@ -54,6 +54,12 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:1.21.3")
     testImplementation("org.axonframework:axon-test")
     testImplementation("org.assertj:assertj-core:3.26.3")
+
+    constraints {
+        testImplementation("com.github.docker-java:docker-java-api:3.6.0")
+        testImplementation("com.github.docker-java:docker-java-transport:3.6.0")
+        testImplementation("com.github.docker-java:docker-java-transport-zerodep:3.6.0")
+    }
 }
 
 tasks.withType<KotlinCompile>().configureEach {
