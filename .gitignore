@@ -25,5 +25,6 @@ hs_err_pid*
 # Misc
 .idea
 .gradle
+.gradle-cache
 build
 out

@@ -1,4 +1,3 @@
-import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -23,43 +22,26 @@ java {
     }
 }
 
-extra["axonVersion"] = "4.9.4"
-
-dependencyManagement {
-    imports {
-        mavenBom("org.axonframework:axon-bom:${property("axonVersion")}")
-    }
-}
-
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-
-    implementation("com.h2database:h2")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-integration")
+    implementation("org.springframework.integration:spring-integration-jdbc")
+    implementation("com.opencqrs:framework-spring-boot-starter:1.0.0")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
 
-    implementation("org.axonframework:axon-spring-boot-starter")
-    implementation("org.axonframework.extensions.kotlin:axon-kotlin:4.12.0")
-    implementation("org.axonframework.extensions.kotlin:axon-kotlin-test:4.12.0")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-
-    runtimeOnly("org.postgresql:postgresql:42.7.8")
     implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("com.ninja-squad:springmockk:4.0.2")
-    testImplementation("org.testcontainers:junit-jupiter:1.21.3")
-    testImplementation("org.axonframework:axon-test")
-    testImplementation("org.assertj:assertj-core:3.26.3")
+    runtimeOnly("org.postgresql:postgresql:42.7.8")
 
-    constraints {
-        testImplementation("com.github.docker-java:docker-java-api:3.6.0")
-        testImplementation("com.github.docker-java:docker-java-transport:3.6.0")
-        testImplementation("com.github.docker-java:docker-java-transport-zerodep:3.6.0")
-    }
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.opencqrs:framework-test:1.0.0")
+    testImplementation("org.assertj:assertj-core:3.26.3")
 }
 
 tasks.withType<KotlinCompile>().configureEach {

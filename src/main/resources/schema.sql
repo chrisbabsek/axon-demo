@@ -1,50 +1,10 @@
-CREATE TABLE IF NOT EXISTS DomainEventEntry (
-    globalIndex BIGSERIAL NOT NULL,
-    aggregateIdentifier VARCHAR(255) NOT NULL,
-    sequenceNumber BIGINT NOT NULL,
-    type VARCHAR(255),
-    eventIdentifier VARCHAR(255) NOT NULL,
-    metaData bytea,
-    payload bytea NOT NULL,
-    payloadRevision VARCHAR(255),
-    payloadType VARCHAR(255) NOT NULL,
-    timeStamp VARCHAR(255) NOT NULL,
-    PRIMARY KEY (globalIndex),
-    UNIQUE (aggregateIdentifier, sequenceNumber),
-    UNIQUE (eventIdentifier)
-    );
-
-CREATE TABLE IF NOT EXISTS SnapshotEventEntry (
-    aggregateIdentifier VARCHAR(255) NOT NULL,
-    sequenceNumber BIGINT NOT NULL,
-    type VARCHAR(255) NOT NULL,
-    eventIdentifier VARCHAR(255) NOT NULL,
-    metaData bytea,
-    payload bytea NOT NULL,
-    payloadRevision VARCHAR(255),
-    payloadType VARCHAR(255) NOT NULL,
-    timeStamp VARCHAR(255) NOT NULL,
-    PRIMARY KEY (aggregateIdentifier, sequenceNumber),
-    UNIQUE (eventIdentifier)
-    );
-
-CREATE TABLE IF NOT EXISTS TokenEntry (
-    processorName VARCHAR(255) NOT NULL,
-    segment INTEGER NOT NULL,
-    token bytea NULL,
-    tokenType VARCHAR(255) NULL,
-    timestamp VARCHAR(255) NULL,
-    owner VARCHAR(255) NULL,
-    PRIMARY KEY (processorName,segment)
-    );
-
-CREATE TABLE IF NOT EXISTS SagaEntry (
-    sagaId VARCHAR(255) NOT NULL,
-    revision VARCHAR(255),
-    sagaType VARCHAR(255),
-    serializedSaga BYTEA,
-    PRIMARY KEY (sagaId)
-    );
+CREATE TABLE IF NOT EXISTS EVENTHANDLER_PROGRESS
+(
+    GROUP_KEY    VARCHAR(255) NOT NULL,
+    PARTITION_ID BIGINT       NOT NULL,
+    EVENT_ID     VARCHAR(255) NOT NULL,
+    PRIMARY KEY (GROUP_KEY, PARTITION_ID)
+);
 
 CREATE TABLE IF NOT EXISTS bank_account_projection
 (

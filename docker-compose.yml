@@ -1,8 +1,35 @@
-version: '3'
 services:
+  eventsourcingdb:
+    image: thenativeweb/eventsourcingdb:latest
+    command: >
+      run
+        --api-token=${ESDB_API_TOKEN:-secret}
+        --data-directory-temporary
+        --http-enabled
+        --https-enabled=false
+        --with-ui
+    ports:
+      - "3000:3000"
+
   postgres:
-    image: "postgres"
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432"
+
+  app:
+    build:
+      context: .
+    depends_on:
+      - postgres
+      - eventsourcingdb
     environment:
-      POSTGRES_PASSWORD: secret
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: secret
+      ESDB_SERVER_URI: http://eventsourcingdb:3000
+      ESDB_API_TOKEN: secret
+    ports:
+      - "8080:8080"
