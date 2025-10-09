@@ -1,19 +1,20 @@
 package de.babsek.demo.axontesting.remote
 
+import com.opencqrs.framework.command.CommandRouter
 import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.commands.CloseBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.OpenBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.TransferMoneyCommand
 import de.babsek.demo.axontesting.projection.BankAccountProjectionEntity
 import de.babsek.demo.axontesting.projection.BankAccountProjectionRepository
-import org.axonframework.commandhandling.gateway.CommandGateway
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping
 class BankAccountController(
-    private val commandGateway: CommandGateway,
+    private val commandRouter: CommandRouter,
     private val bankAccountProjectionRepository: BankAccountProjectionRepository,
 ) {
 
@@ -26,12 +27,16 @@ class BankAccountController(
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("bankaccounts")
-    fun openBankAccount(@RequestBody request: CreateBankAccountDto): String {
-        return commandGateway.sendAndWait(
+    fun openBankAccount(
+        @RequestBody request: CreateBankAccountDto,
+        httpRequest: HttpServletRequest,
+    ): String {
+        return commandRouter.send(
             OpenBankAccountCommand(
                 bankAccountId = request.bankAccountId,
                 ownerName = request.ownerName,
             ),
+            metaData(httpRequest),
         )
     }
 
@@ -49,23 +54,32 @@ class BankAccountController(
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @DeleteMapping("bankaccounts/{bankAccountId}")
-    fun closeBankAccount(@PathVariable bankAccountId: String) {
-        commandGateway.sendAndWait<Unit>(
+    fun closeBankAccount(
+        @PathVariable bankAccountId: String,
+        httpRequest: HttpServletRequest,
+    ) {
+        commandRouter.send<Unit>(
             CloseBankAccountCommand(
                 bankAccountId = bankAccountId,
-            )
+            ),
+            metaData(httpRequest),
         )
     }
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("bankaccounts/{bankAccountId}/payments")
-    fun payInMoney(@PathVariable bankAccountId: String, @RequestBody request: PayInMoneyDto) {
-        commandGateway.sendAndWait<Unit>(
+    fun payInMoney(
+        @PathVariable bankAccountId: String,
+        @RequestBody request: PayInMoneyDto,
+        httpRequest: HttpServletRequest,
+    ) {
+        commandRouter.send<Unit>(
             AcceptMoneyTransferCommand(
                 bankAccountId = bankAccountId,
                 amount = request.amount,
                 reason = "pay in",
             ),
+            metaData(httpRequest),
         )
     }
 
@@ -75,14 +89,18 @@ class BankAccountController(
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("transfers")
-    fun transferMoney(@RequestBody request: MoneyTransferDto) {
-        commandGateway.sendAndWait<Unit>(
+    fun transferMoney(
+        @RequestBody request: MoneyTransferDto,
+        httpRequest: HttpServletRequest,
+    ) {
+        commandRouter.send<Unit>(
             TransferMoneyCommand(
                 bankAccountId = request.originBankAccountId,
                 destinationBankAccount = request.destinationBankAccountId,
                 amount = request.amount,
                 reason = request.reason,
             ),
+            metaData(httpRequest),
         )
     }
 
@@ -99,4 +117,7 @@ class BankAccountController(
         balance = balance,
         transactions = transactions,
     )
+
+    private fun metaData(httpRequest: HttpServletRequest): Map<String, String> =
+        mapOf("request-uri" to httpRequest.requestURI)
 }

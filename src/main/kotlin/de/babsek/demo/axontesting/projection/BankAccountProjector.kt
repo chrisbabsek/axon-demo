@@ -1,22 +1,21 @@
 package de.babsek.demo.axontesting.projection
 
+import com.opencqrs.esdb.client.Event
+import com.opencqrs.framework.eventhandler.EventHandling
 import de.babsek.demo.axontesting.configuration.ProcessingGroups
 import de.babsek.demo.axontesting.domain.events.*
 import de.babsek.demo.axontesting.domain.value.TransactionDetails
-import org.axonframework.config.ProcessingGroup
-import org.axonframework.eventhandling.EventHandler
-import org.axonframework.eventhandling.Timestamp
 import org.springframework.stereotype.Component
-import java.time.Instant
+import org.springframework.transaction.annotation.Transactional
 
-@ProcessingGroup(ProcessingGroups.READ_MODEL_PROJECTION)
 @Component
 class BankAccountProjector(
     private val repository: BankAccountProjectionRepository,
 ) {
 
-    @EventHandler
-    fun on(event: BankAccountOpenedEvent, @Timestamp now: Instant) {
+    @EventHandling(ProcessingGroups.READ_MODEL_PROJECTION)
+    @Transactional
+    fun on(event: BankAccountOpenedEvent, rawEvent: Event) {
         repository.saveAndFlush(
             BankAccountProjectionEntity(
                 bankAccountId = event.bankAccountId,
@@ -25,63 +24,68 @@ class BankAccountProjector(
                 transactions = listOf(
                     TransactionDetails(
                         type = "opened",
-                        date = now,
+                        date = rawEvent.time(),
                         valuta = event.initialBalance,
                         details = "bank account opened",
-                    )
+                    ),
+                ),
             ),
-            )
         )
     }
 
-    @EventHandler
-    fun on(event: MoneyTransferArrivedEvent, @Timestamp now: Instant) = updateProjection(event.bankAccountId) {
+    @EventHandling(ProcessingGroups.READ_MODEL_PROJECTION)
+    @Transactional
+    fun on(event: MoneyTransferArrivedEvent, rawEvent: Event) = updateProjection(event.bankAccountId) {
         copy(
             balance = balance + event.amount,
             transactions = transactions + TransactionDetails(
                 type = "moneyTransferArrived",
-                date = now,
+                date = rawEvent.time(),
                 valuta = event.amount,
-                details = "payment arrived: ${event.reason}"
-            )
+                details = "payment arrived: ${event.reason}",
+            ),
         )
     }
 
-    @EventHandler
-    fun on(event: MoneyTransferRequestedEvent, @Timestamp now: Instant) = updateProjection(event.originBankAccountId) {
-        copy(
-            balance = balance - event.amount,
-            transactions = transactions + TransactionDetails(
-                type = "moneyTransferRequested",
-                date = now,
-                valuta = -event.amount,
-                details = "transfer to ${event.targetBankAccountId} requested: ${event.reason}"
+    @EventHandling(ProcessingGroups.READ_MODEL_PROJECTION)
+    @Transactional
+    fun on(event: MoneyTransferRequestedEvent, rawEvent: Event) =
+        updateProjection(event.originBankAccountId) {
+            copy(
+                balance = balance - event.amount,
+                transactions = transactions + TransactionDetails(
+                    type = "moneyTransferRequested",
+                    date = rawEvent.time(),
+                    valuta = -event.amount,
+                    details = "transfer to ${event.targetBankAccountId} requested: ${event.reason}",
+                ),
             )
-        )
-    }
+        }
 
-    @EventHandler
-    fun on(event: MoneyTransferFailedEvent, @Timestamp now: Instant) = updateProjection(event.bankAccountId) {
+    @EventHandling(ProcessingGroups.READ_MODEL_PROJECTION)
+    @Transactional
+    fun on(event: MoneyTransferFailedEvent, rawEvent: Event) = updateProjection(event.bankAccountId) {
         copy(
             balance = balance + event.amount,
             transactions = transactions + TransactionDetails(
-                type = "moneyTransferRequested",
-                date = now,
+                type = "moneyTransferFailed",
+                date = rawEvent.time(),
                 valuta = event.amount,
-                details = "transfer to ${event.targetBankAccountId} failed: ${event.errorMessage}"
-            )
+                details = "transfer to ${event.targetBankAccountId} failed: ${event.errorMessage}",
+            ),
         )
     }
 
-    @EventHandler
-    fun on(event: BankAccountClosedEvent, @Timestamp now: Instant) = updateProjection(event.bankAccountId) {
+    @EventHandling(ProcessingGroups.READ_MODEL_PROJECTION)
+    @Transactional
+    fun on(event: BankAccountClosedEvent, rawEvent: Event) = updateProjection(event.bankAccountId) {
         copy(
             transactions = transactions + TransactionDetails(
                 type = "closed",
-                date = now,
+                date = rawEvent.time(),
                 valuta = 0.0,
-                details = "bank account closed"
-            )
+                details = "bank account closed",
+            ),
         )
     }
 
@@ -92,6 +96,6 @@ class BankAccountProjector(
         repository
             .findByBankAccountId(bankAccountId)
             ?.block()
-            ?.apply(repository::saveAndFlush)
+            ?.let(repository::saveAndFlush)
     }
 }
