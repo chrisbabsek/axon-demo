@@ -23,43 +23,26 @@ java {
     }
 }
 
-extra["axonVersion"] = "4.9.4"
-
-dependencyManagement {
-    imports {
-        mavenBom("org.axonframework:axon-bom:${property("axonVersion")}")
-    }
-}
-
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
-    implementation("com.h2database:h2")
-
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
 
-    implementation("org.axonframework:axon-spring-boot-starter")
-    implementation("org.axonframework.extensions.kotlin:axon-kotlin:4.12.0")
-    implementation("org.axonframework.extensions.kotlin:axon-kotlin-test:4.12.0")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("com.opencqrs:framework-spring-boot-starter:1.0.0")
 
     runtimeOnly("org.postgresql:postgresql:42.7.8")
     implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("com.ninja-squad:springmockk:4.0.2")
-    testImplementation("org.testcontainers:junit-jupiter:1.21.3")
-    testImplementation("org.axonframework:axon-test")
-    testImplementation("org.assertj:assertj-core:3.26.3")
+    testImplementation("com.opencqrs:framework-test:1.0.0")
+}
 
-    constraints {
-        testImplementation("com.github.docker-java:docker-java-api:3.6.0")
-        testImplementation("com.github.docker-java:docker-java-transport:3.6.0")
-        testImplementation("com.github.docker-java:docker-java-transport-zerodep:3.6.0")
-    }
+kotlin.sourceSets.all {
+    languageSettings.optIn("kotlin.contracts.ExperimentalContracts")
 }
 
 tasks.withType<KotlinCompile>().configureEach {

@@ -102,6 +102,150 @@ die () {
     exit 1
 } >&2
 
+# Build the Gradle wrapper jar from sources when the binary is not present.
+ensure_gradle_wrapper_jar () {
+    wrapper_jar="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+    properties_file="$APP_HOME/gradle/wrapper/gradle-wrapper.properties"
+
+    if [ -r "$wrapper_jar" ] ; then
+        return
+    fi
+
+    if [ ! -f "$properties_file" ] ; then
+        die "ERROR: gradle-wrapper.properties is required to assemble gradle-wrapper.jar."
+    fi
+
+    distribution_url=$( sed -n 's/^distributionUrl=//p' "$properties_file" | head -n 1 )
+    distribution_url=$( printf '%s\n' "$distribution_url" | tr -d '\r' | sed 's#\\:#:#g' )
+
+    if [ -z "$distribution_url" ] ; then
+        die "ERROR: distributionUrl is missing in gradle-wrapper.properties."
+    fi
+
+    distribution_base=${distribution_url##*/}
+    distribution_nozip=${distribution_base%.zip}
+    version_fragment=${distribution_nozip#gradle-}
+    case "$version_fragment" in
+        *-bin) version=${version_fragment%-bin} ;;
+        *-all) version=${version_fragment%-all} ;;
+        *-src) version=${version_fragment%-src} ;;
+        *)     version=$version_fragment ;;
+    esac
+
+    if command -v jar >/dev/null 2>&1 ; then
+        jar_cmd=$( command -v jar )
+    else
+        jar_cmd=${JAVACMD%/java}/jar
+    fi
+
+    if [ ! -x "$jar_cmd" ] ; then
+        die "ERROR: gradle-wrapper.jar is missing and the jar tool is not available."
+    fi
+
+    build_dir="$APP_HOME/gradle/wrapper/build"
+    dist_zip="$build_dir/distribution.zip"
+    shared_jar="$build_dir/gradle-wrapper-shared.jar"
+    main_jar="$build_dir/gradle-wrapper-main.jar"
+    cli_jar="$build_dir/gradle-cli.jar"
+    base_services_jar="$build_dir/gradle-base-services.jar"
+    files_jar="$build_dir/gradle-files.jar"
+    extracted_dir="$build_dir/extracted"
+    classes_dir="$build_dir/classes"
+    manifest_file="$build_dir/MANIFEST.MF"
+    shared_entry="gradle-$version/lib/gradle-wrapper-shared-$version.jar"
+    main_entry="gradle-$version/lib/plugins/gradle-wrapper-main-$version.jar"
+    cli_entry="gradle-$version/lib/gradle-cli-$version.jar"
+    base_services_entry="gradle-$version/lib/gradle-base-services-$version.jar"
+    files_entry="gradle-$version/lib/gradle-files-$version.jar"
+
+    rm -rf "$build_dir"
+    mkdir -p "$classes_dir" "$extracted_dir"
+
+    if command -v curl >/dev/null 2>&1 ; then
+        if ! curl -sSfL "$distribution_url" -o "$dist_zip" ; then
+            die "ERROR: Failed to download Gradle distribution from $distribution_url"
+        fi
+    elif command -v wget >/dev/null 2>&1 ; then
+        if ! wget -q "$distribution_url" -O "$dist_zip" ; then
+            die "ERROR: Failed to download Gradle distribution from $distribution_url"
+        fi
+    else
+        die "ERROR: Neither curl nor wget is available to download $distribution_url"
+    fi
+
+    extracted_shared=false
+    extracted_main=false
+    extracted_cli=false
+    extracted_base_services=false
+    extracted_files=false
+    if command -v unzip >/dev/null 2>&1 ; then
+        if unzip -p "$dist_zip" "$shared_entry" > "$shared_jar" ; then
+            extracted_shared=true
+        fi
+        if unzip -p "$dist_zip" "$main_entry" > "$main_jar" ; then
+            extracted_main=true
+        fi
+        if unzip -p "$dist_zip" "$cli_entry" > "$cli_jar" ; then
+            extracted_cli=true
+        fi
+        if unzip -p "$dist_zip" "$base_services_entry" > "$base_services_jar" ; then
+            extracted_base_services=true
+        fi
+        if unzip -p "$dist_zip" "$files_entry" > "$files_jar" ; then
+            extracted_files=true
+        fi
+    fi
+
+    if [ "$extracted_shared" != "true" ] || [ "$extracted_main" != "true" ] || [ "$extracted_cli" != "true" ] || [ "$extracted_base_services" != "true" ] || [ "$extracted_files" != "true" ] ; then
+        rm -f "$shared_jar" "$main_jar" "$cli_jar" "$base_services_jar" "$files_jar"
+        if ! ( cd "$extracted_dir" && "$jar_cmd" xf "$dist_zip" "$shared_entry" "$main_entry" "$cli_entry" "$base_services_entry" "$files_entry" ) ; then
+            die "ERROR: Failed to extract Gradle wrapper components"
+        fi
+        if [ ! -f "$extracted_dir/$shared_entry" ] || [ ! -f "$extracted_dir/$main_entry" ] || [ ! -f "$extracted_dir/$cli_entry" ] || [ ! -f "$extracted_dir/$base_services_entry" ] || [ ! -f "$extracted_dir/$files_entry" ] ; then
+            die "ERROR: Gradle wrapper components were not found in the distribution"
+        fi
+        if ! mv "$extracted_dir/$shared_entry" "$shared_jar" ; then
+            die "ERROR: Failed to move shared wrapper jar"
+        fi
+        if ! mv "$extracted_dir/$main_entry" "$main_jar" ; then
+            die "ERROR: Failed to move main wrapper jar"
+        fi
+        if ! mv "$extracted_dir/$cli_entry" "$cli_jar" ; then
+            die "ERROR: Failed to move CLI wrapper jar"
+        fi
+        if ! mv "$extracted_dir/$base_services_entry" "$base_services_jar" ; then
+            die "ERROR: Failed to move base services jar"
+        fi
+        if ! mv "$extracted_dir/$files_entry" "$files_jar" ; then
+            die "ERROR: Failed to move files jar"
+        fi
+    fi
+
+    if ! ( cd "$classes_dir" && "$jar_cmd" xf "$shared_jar" ); then
+        die "ERROR: Failed to unpack gradle-wrapper-shared.jar"
+    fi
+    if ! ( cd "$classes_dir" && "$jar_cmd" xf "$main_jar" ); then
+        die "ERROR: Failed to unpack gradle-wrapper-main.jar"
+    fi
+    if ! ( cd "$classes_dir" && "$jar_cmd" xf "$cli_jar" ); then
+        die "ERROR: Failed to unpack gradle-cli.jar"
+    fi
+    if ! ( cd "$classes_dir" && "$jar_cmd" xf "$base_services_jar" ); then
+        die "ERROR: Failed to unpack gradle-base-services.jar"
+    fi
+    if ! ( cd "$classes_dir" && "$jar_cmd" xf "$files_jar" ); then
+        die "ERROR: Failed to unpack gradle-files.jar"
+    fi
+
+    printf 'Manifest-Version: 1.0\nMain-Class: org.gradle.wrapper.GradleWrapperMain\n' > "$manifest_file"
+
+    if ! "$jar_cmd" cfm "$wrapper_jar" "$manifest_file" -C "$classes_dir" . ; then
+        die "ERROR: Failed to assemble gradle-wrapper.jar"
+    fi
+
+    rm -rf "$build_dir"
+}
+
 # OS specific support (must be 'true' or 'false').
 cygwin=false
 msys=false
@@ -141,6 +285,9 @@ Please set the JAVA_HOME variable in your environment to match the
 location of your Java installation."
     fi
 fi
+
+# Ensure the wrapper jar exists before executing.
+ensure_gradle_wrapper_jar
 
 # Increase the maximum file descriptors if we can.
 if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then

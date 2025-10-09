@@ -1,28 +1,26 @@
-axon:
-  axonserver:
-    enabled: false
-  eventhandling:
-    processors:
-      subscribing:
-        mode: subscribing
-      internalMoneyTransfer:
-        mode: tracking
-        thread-count: 1
-        initial-segment-count: 1
-      readModelProjection:
-        mode: tracking
-        thread-count: 1
-        initial-segment-count: 1
-  serializer:
-    general: jackson
-    events: jackson
-    messages: jackson
-
 spring:
+  application:
+    name: bank-service
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
     password: secret
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
   sql:
     init:
       mode: always
+      platform: postgres
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+esdb:
+  server:
+    uri: http://localhost:3000
+    api-token: secret

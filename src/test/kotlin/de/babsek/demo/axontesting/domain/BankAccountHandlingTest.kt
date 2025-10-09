@@ -1,5 +1,8 @@
 package de.babsek.demo.axontesting.domain
 
+import com.opencqrs.framework.command.CommandHandlingTest
+import com.opencqrs.framework.command.CommandHandlingTestFixture
+import com.opencqrs.framework.command.CommandSubjectAlreadyExistsException
 import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.commands.CloseBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.OpenBankAccountCommand
@@ -8,88 +11,91 @@ import de.babsek.demo.axontesting.domain.events.BankAccountClosedEvent
 import de.babsek.demo.axontesting.domain.events.BankAccountOpenedEvent
 import de.babsek.demo.axontesting.domain.events.MoneyTransferArrivedEvent
 import de.babsek.demo.axontesting.domain.events.MoneyTransferRequestedEvent
-import de.babsek.demo.axontesting.domain.exceptions.BankAccountAlreadyExistingException
+import de.babsek.demo.axontesting.domain.exceptions.BankAccountAlreadyClosedException
 import de.babsek.demo.axontesting.domain.exceptions.BankAccountMustBeBalancedForCloseException
 import de.babsek.demo.axontesting.domain.exceptions.NotEnoughMoneyException
-import org.axonframework.eventsourcing.AggregateDeletedException
-import org.axonframework.extension.kotlin.test.aggregateTestFixture
-import org.axonframework.extension.kotlin.test.expectException
-import org.axonframework.extension.kotlin.test.whenever
+import java.math.BigDecimal
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 
-
-class BankAccountAggregateTest {
-    val fixture = aggregateTestFixture<BankAccountAggregate>()
+@CommandHandlingTest
+class BankAccountHandlingTest {
 
     @Nested
     inner class OpenBankAccount {
         @Test
-        fun `can open new bank account`() {
+        fun `can open new bank account`(
+            @Autowired fixture: CommandHandlingTestFixture<OpenBankAccountCommand>,
+        ) {
             fixture
-                .givenNoPriorActivity()
-                .whenever(
+                .givenNothing()
+                .`when`(
                     OpenBankAccountCommand(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                    )
+                    ),
                 )
-                .expectSuccessfulHandlerExecution()
-                .expectEvents(
+                .expectResult("001")
+                .expectSingleEvent(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 0.0,
-                    )
+                        initialBalance = BigDecimal.ZERO,
+                    ),
                 )
         }
 
         @Test
-        fun `deny to open new bank account with existing id`() {
+        fun `deny to open new bank account with existing id`(
+            @Autowired fixture: CommandHandlingTestFixture<OpenBankAccountCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 0.0,
-                    )
+                        initialBalance = BigDecimal.ZERO,
+                    ),
                 )
-                .whenever(
+                .`when`(
                     OpenBankAccountCommand(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                    )
+                    ),
                 )
-                .expectException(BankAccountAlreadyExistingException::class)
+                .expectException(CommandSubjectAlreadyExistsException::class.java)
         }
     }
 
     @Nested
     inner class AcceptMoneyTransfer {
         @Test
-        fun `can accept money transfer`() {
+        fun `can accept money transfer`(
+            @Autowired fixture: CommandHandlingTestFixture<AcceptMoneyTransferCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 0.0,
-                    )
+                        initialBalance = BigDecimal.ZERO,
+                    ),
                 )
-                .whenever(
+                .`when`(
                     AcceptMoneyTransferCommand(
                         bankAccountId = "001",
-                        amount = 2500.0,
+                        amount = BigDecimal("2500.00"),
                         reason = "salary 11/23",
-                    )
+                    ),
                 )
-                .expectSuccessfulHandlerExecution()
-                .expectEvents(
+                .expectSuccessfulExecution()
+                .expectSingleEvent(
                     MoneyTransferArrivedEvent(
                         bankAccountId = "001",
-                        amount = 2500.0,
+                        amount = BigDecimal("2500.00"),
                         reason = "salary 11/23",
-                    )
+                    ),
                 )
         }
     }
@@ -97,52 +103,56 @@ class BankAccountAggregateTest {
     @Nested
     inner class TransferMoney {
         @Test
-        fun `fail to transfer money if not enough money on bank account`() {
+        fun `fail to transfer money if not enough money on bank account`(
+            @Autowired fixture: CommandHandlingTestFixture<TransferMoneyCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 1000.0,
-                    )
+                        initialBalance = BigDecimal("1000.00"),
+                    ),
                 )
-                .whenever(
+                .`when`(
                     TransferMoneyCommand(
                         bankAccountId = "001",
                         destinationBankAccount = "002",
-                        amount = 1001.0,
-                        reason = "rent payment 11/23"
-                    )
+                        amount = BigDecimal("1001.00"),
+                        reason = "rent payment 11/23",
+                    ),
                 )
-                .expectException(NotEnoughMoneyException::class)
+                .expectException(NotEnoughMoneyException::class.java)
         }
 
         @Test
-        fun `transfer money on enough money available`() {
+        fun `transfer money on enough money available`(
+            @Autowired fixture: CommandHandlingTestFixture<TransferMoneyCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 1000.0,
-                    )
+                        initialBalance = BigDecimal("1000.00"),
+                    ),
                 )
-                .whenever(
+                .`when`(
                     TransferMoneyCommand(
                         bankAccountId = "001",
                         destinationBankAccount = "002",
-                        amount = 850.0,
-                        reason = "rent payment 11/23"
-                    )
+                        amount = BigDecimal("850.00"),
+                        reason = "rent payment 11/23",
+                    ),
                 )
-                .expectSuccessfulHandlerExecution()
-                .expectEvents(
+                .expectSuccessfulExecution()
+                .expectSingleEvent(
                     MoneyTransferRequestedEvent(
                         originBankAccountId = "001",
                         targetBankAccountId = "002",
-                        amount = 850.0,
-                        reason = "rent payment 11/23"
-                    )
+                        amount = BigDecimal("850.00"),
+                        reason = "rent payment 11/23",
+                    ),
                 )
         }
     }
@@ -150,69 +160,71 @@ class BankAccountAggregateTest {
     @Nested
     inner class CloseBankAccount {
         @Test
-        fun `can close balanced non-closed bank account`() {
+        fun `can close balanced non-closed bank account`(
+            @Autowired fixture: CommandHandlingTestFixture<CloseBankAccountCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 0.0,
-                    )
+                        initialBalance = BigDecimal.ZERO,
+                    ),
                 )
-                .whenever(
+                .`when`(
                     CloseBankAccountCommand(
                         bankAccountId = "001",
-                    )
+                    ),
                 )
-                .expectSuccessfulHandlerExecution()
-                .expectEvents(
+                .expectSuccessfulExecution()
+                .expectSingleEvent(
                     BankAccountClosedEvent(
                         bankAccountId = "001",
-                    )
+                    ),
                 )
-                .expectMarkedDeleted()
         }
 
         @Test
-        fun `fail to close non-balanced bank account`() {
+        fun `fail to close non-balanced bank account`(
+            @Autowired fixture: CommandHandlingTestFixture<CloseBankAccountCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 100.0,
-                    )
+                        initialBalance = BigDecimal("100.00"),
+                    ),
                 )
-                .whenever(
+                .`when`(
                     CloseBankAccountCommand(
                         bankAccountId = "001",
-                    )
+                    ),
                 )
-                .expectException(BankAccountMustBeBalancedForCloseException::class)
+                .expectException(BankAccountMustBeBalancedForCloseException::class.java)
         }
 
         @Test
-        fun `fail to close already closed bank account`() {
+        fun `fail to close already closed bank account`(
+            @Autowired fixture: CommandHandlingTestFixture<CloseBankAccountCommand>,
+        ) {
             fixture
                 .given(
                     BankAccountOpenedEvent(
                         bankAccountId = "001",
                         ownerName = "Ted Tester",
-                        initialBalance = 0.0,
-                    )
-                )
-                .andGiven(
+                        initialBalance = BigDecimal.ZERO,
+                    ),
                     BankAccountClosedEvent(
                         bankAccountId = "001",
-                    )
+                    ),
                 )
-                .whenever(
+                .`when`(
                     CloseBankAccountCommand(
                         bankAccountId = "001",
-                    )
+                    ),
                 )
-                .expectException(AggregateDeletedException::class)
+                .expectException(BankAccountAlreadyClosedException::class.java)
         }
     }
-
 }

@@ -1,8 +1,11 @@
 package de.babsek.demo.axontesting.domain.commands
 
-import org.axonframework.modelling.command.TargetAggregateIdentifier
+import com.opencqrs.framework.command.Command
 
 data class CloseBankAccountCommand(
-    @TargetAggregateIdentifier
     val bankAccountId: String,
-)
+) : Command {
+    override fun getSubject(): String = "/bank-accounts/$bankAccountId"
+
+    override fun getSubjectCondition(): Command.SubjectCondition = Command.SubjectCondition.EXISTS
+}

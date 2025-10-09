@@ -1,66 +1,68 @@
 package de.babsek.demo.axontesting.remote
 
+import com.opencqrs.framework.command.CommandRouter
 import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.commands.CloseBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.OpenBankAccountCommand
 import de.babsek.demo.axontesting.domain.commands.TransferMoneyCommand
-import de.babsek.demo.axontesting.projection.BankAccountProjectionEntity
 import de.babsek.demo.axontesting.projection.BankAccountProjectionRepository
-import org.axonframework.commandhandling.gateway.CommandGateway
+import jakarta.validation.Valid
+import jakarta.validation.constraints.DecimalMin
+import jakarta.validation.constraints.NotBlank
+import java.math.BigDecimal
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping
 class BankAccountController(
-    private val commandGateway: CommandGateway,
+    private val commandRouter: CommandRouter,
     private val bankAccountProjectionRepository: BankAccountProjectionRepository,
 ) {
 
     @GetMapping("bankaccounts")
-    fun findAll(): List<BankAccountDto> {
-        return bankAccountProjectionRepository
+    fun findAll(): List<BankAccountDto> =
+        bankAccountProjectionRepository
             .findAll()
             .map { it.toDto() }
-    }
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("bankaccounts")
-    fun openBankAccount(@RequestBody request: CreateBankAccountDto): String {
-        return commandGateway.sendAndWait(
-            OpenBankAccountCommand(
-                bankAccountId = request.bankAccountId,
-                ownerName = request.ownerName,
-            ),
+    fun openBankAccount(@Valid @RequestBody request: CreateBankAccountDto): String {
+        val command = OpenBankAccountCommand(
+            bankAccountId = request.bankAccountId,
+            ownerName = request.ownerName,
         )
+        return commandRouter.send(command)
     }
 
     data class CreateBankAccountDto(
+        @field:NotBlank
         val bankAccountId: String,
+        @field:NotBlank
         val ownerName: String,
     )
 
     @GetMapping("bankaccounts/{bankAccountId}")
-    fun findById(@PathVariable bankAccountId: String): BankAccountDto? {
-        return bankAccountProjectionRepository
+    fun findById(@PathVariable bankAccountId: String): BankAccountDto? =
+        bankAccountProjectionRepository
             .findByBankAccountId(bankAccountId)
             ?.toDto()
-    }
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @DeleteMapping("bankaccounts/{bankAccountId}")
     fun closeBankAccount(@PathVariable bankAccountId: String) {
-        commandGateway.sendAndWait<Unit>(
+        commandRouter.send<Unit>(
             CloseBankAccountCommand(
                 bankAccountId = bankAccountId,
-            )
+            ),
         )
     }
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("bankaccounts/{bankAccountId}/payments")
-    fun payInMoney(@PathVariable bankAccountId: String, @RequestBody request: PayInMoneyDto) {
-        commandGateway.sendAndWait<Unit>(
+    fun payInMoney(@PathVariable bankAccountId: String, @Valid @RequestBody request: PayInMoneyDto) {
+        commandRouter.send<Unit>(
             AcceptMoneyTransferCommand(
                 bankAccountId = bankAccountId,
                 amount = request.amount,
@@ -70,13 +72,14 @@ class BankAccountController(
     }
 
     data class PayInMoneyDto(
-        val amount: Double,
+        @field:DecimalMin("0.01")
+        val amount: BigDecimal,
     )
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("transfers")
-    fun transferMoney(@RequestBody request: MoneyTransferDto) {
-        commandGateway.sendAndWait<Unit>(
+    fun transferMoney(@Valid @RequestBody request: MoneyTransferDto) {
+        commandRouter.send<Unit>(
             TransferMoneyCommand(
                 bankAccountId = request.originBankAccountId,
                 destinationBankAccount = request.destinationBankAccountId,
@@ -87,13 +90,17 @@ class BankAccountController(
     }
 
     data class MoneyTransferDto(
+        @field:NotBlank
         val originBankAccountId: String,
+        @field:NotBlank
         val destinationBankAccountId: String,
-        val amount: Double,
+        @field:DecimalMin("0.01")
+        val amount: BigDecimal,
+        @field:NotBlank
         val reason: String,
     )
 
-    private fun BankAccountProjectionEntity.toDto() = BankAccountDto(
+    private fun de.babsek.demo.axontesting.projection.BankAccountProjectionEntity.toDto() = BankAccountDto(
         bankAccountId = bankAccountId,
         ownerName = ownerName,
         balance = balance,

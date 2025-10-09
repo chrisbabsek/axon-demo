@@ -1,11 +1,15 @@
 package de.babsek.demo.axontesting.domain.commands
 
-import org.axonframework.modelling.command.TargetAggregateIdentifier
+import com.opencqrs.framework.command.Command
+import java.math.BigDecimal
 
 data class InformFailedMoneyTransferCommand(
-    @TargetAggregateIdentifier
     val bankAccountId: String,
     val targetBankAccountId: String,
-    val amount: Double,
-    val errorMessage: String?
-)
+    val amount: BigDecimal,
+    val errorMessage: String?,
+) : Command {
+    override fun getSubject(): String = "/bank-accounts/$bankAccountId"
+
+    override fun getSubjectCondition(): Command.SubjectCondition = Command.SubjectCondition.EXISTS
+}

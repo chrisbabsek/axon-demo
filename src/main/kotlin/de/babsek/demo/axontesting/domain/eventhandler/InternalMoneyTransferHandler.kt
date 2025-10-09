@@ -1,39 +1,43 @@
 package de.babsek.demo.axontesting.domain.eventhandler
 
+import com.opencqrs.framework.command.CommandRouter
 import de.babsek.demo.axontesting.configuration.ProcessingGroups
 import de.babsek.demo.axontesting.domain.commands.AcceptMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.commands.InformFailedMoneyTransferCommand
 import de.babsek.demo.axontesting.domain.events.MoneyTransferRequestedEvent
-import org.axonframework.commandhandling.gateway.CommandGateway
-import org.axonframework.config.ProcessingGroup
-import org.axonframework.eventhandling.EventHandler
+import com.opencqrs.framework.eventhandler.EventHandling
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
-@ProcessingGroup(ProcessingGroups.INTERNAL_MONEY_TRANSFER)
 @Component
 class InternalMoneyTransferHandler(
-    private val commandGateway: CommandGateway,
+    private val commandRouter: CommandRouter,
 ) {
 
-    @EventHandler
+    @EventHandling(ProcessingGroups.INTERNAL_MONEY_TRANSFER)
     fun on(event: MoneyTransferRequestedEvent) {
-        try {
-            commandGateway.sendAndWait<Unit>(
+        runCatching {
+            commandRouter.send<Unit>(
                 AcceptMoneyTransferCommand(
                     bankAccountId = event.targetBankAccountId,
                     amount = event.amount,
                     reason = event.reason,
                 ),
             )
-        } catch (e: Exception) {
-            commandGateway.sendAndWait<Unit>(
+        }.onFailure { throwable ->
+            logger.warn(throwable) { "Failed to accept transfer, rolling back" }
+            commandRouter.send<Unit>(
                 InformFailedMoneyTransferCommand(
                     bankAccountId = event.originBankAccountId,
                     targetBankAccountId = event.targetBankAccountId,
                     amount = event.amount,
-                    errorMessage = e.message,
+                    errorMessage = throwable.message,
                 ),
             )
         }
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
     }
 }

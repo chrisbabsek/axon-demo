@@ -1,16 +1,14 @@
 package de.babsek.demo.axontesting.domain.eventhandler
 
+import com.opencqrs.framework.eventhandler.EventHandling
 import de.babsek.demo.axontesting.configuration.ProcessingGroups
 import mu.KotlinLogging
-import org.axonframework.config.ProcessingGroup
-import org.axonframework.eventhandling.EventHandler
 import org.springframework.stereotype.Component
 
-@ProcessingGroup(ProcessingGroups.SUBSCRIBING)
 @Component
 class LoggingEventHandler {
 
-    @EventHandler
+    @EventHandling(ProcessingGroups.SUBSCRIBING)
     fun on(event: Any) {
         logger.info { event }
     }

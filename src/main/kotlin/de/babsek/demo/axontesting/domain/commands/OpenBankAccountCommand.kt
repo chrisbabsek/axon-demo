@@ -1,9 +1,12 @@
 package de.babsek.demo.axontesting.domain.commands
 
-import org.axonframework.modelling.command.TargetAggregateIdentifier
+import com.opencqrs.framework.command.Command
 
 data class OpenBankAccountCommand(
-    @TargetAggregateIdentifier
     val bankAccountId: String,
-    val ownerName: String
-)
+    val ownerName: String,
+) : Command {
+    override fun getSubject(): String = "/bank-accounts/$bankAccountId"
+
+    override fun getSubjectCondition(): Command.SubjectCondition = Command.SubjectCondition.PRISTINE
+}
